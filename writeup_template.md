@@ -1,8 +1,117 @@
-## Project: Perception Pick & Place
-### Writeup Template: You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+# Project: Perception Pick & Place
+
+### Submission for Udacity Robotics Software Engineer Nanodegree
+### Sebastian Castro - 2018
+
+[//]: # (Image References)
+
+[confusion_matrices]: ./misc_images/confusion_matrices.PNG
+[world1]: ./misc_images/World1.PNG
+[world2]: ./misc_images/World2.PNG
+[world3]: ./misc_images/World3.PNG
 
 ---
 
+## Introduction
+Describe the problem
+
+
+## Perception Pipeline Methodology
+Here, we will discuss the steps taken in the perception pipeline and the parameters selected at each step.
+
+### STEP 1: Point Cloud Processing
+
+### STEP 2: Point Cloud Clustering
+
+### STEP 3: Object Detection
+The features used were:
+* HSV color space with 25 bins for each channel
+* Normals only in the Z direction, with 5 bins
+
+HSV performed better than RGB for separating objects that were more similar in color. This is because the saturation and value channels could be used to better separate these objects. 25 color bins were selected by changing the numbers of color bins and checking the test accuracy. We also found that the normal data contributed to overfitting, especially since the training data used many more orientations than the actual project environment. Due to this, we only created features out of the Z-direction normals, and picked a smaller number of bins.
+
+The SVM kernel used was linear. Polynomial order 2+ yielded worse results. RBF gave slightly better test results, but empirically
+performed worse on the actual project. This is likely because radial basis functions are more prone to overfitting since they can create more complex 
+decision boundaries than a linear SVM.
+
+The relevant classification code in `project_template.py` is below:
+
+```
+# Grab the points for the cluster
+pcl_cluster = cloud_outliers.extract(pts_list)
+
+# Compute the associated feature vector
+feat_cloud = pcl_cluster.to_array()
+chists = compute_color_histograms(ros_cluster, using_hsv=True)
+normals = get_normals(ros_cluster)
+nhists = compute_normal_histograms(normals)
+feature = np.concatenate((chists, nhists))
+
+# Make the prediction
+prediction = classifier.predict(scaler.transform(feature.reshape(1,-1)))
+label = encoder.inverse_transform(prediction)[0]
+```
+
+
+## Software Implementation
+A few modifications were made to the project infrastructure to help automate the process of object detector training and results creation.
+
+### Data Collection Automation
+Arguments were added to the capture_features.py from Exercise 3 to make training data collection easier. The 2 option arguments are
+* World Number (default = 1)
+* Number of point clouds per object (default = 10)
+
+For example, to capture training features for all objects in World 3, with 50 point clouds for each object:
+```
+rosrun pr2_robot capture_features.py 3 50
+```
+
+### Launch File and Results File Automation
+Added argument to the `pick_place.launch` file, which sets the world number, pick list file, and creates a ROS parameter on the parameter server with the world number. If no argument is specified, world 1 will be picked.
+
+
+```
+roslaunch pr2_robot pick_place_project.launch world:=2
+```
+
+This ROS parameter can be used in the main project file to automatically set the file name of, and write the world number to, to the YAML file.
+
+
+## Results and future work
+We trained a single SVM using the world 3 data (which contains all objects) and 50 data points per object. Training accuracy was 84.58%. See below for the confusion matrices.
+
+![Confusion matrices for final trained model][confusion_matrices]
+
+An interesting observation: We also tried collecting more data (100 data points per object). While the training accuract went up to 91%, results were not as accurate on the actual project environment.
+
+World 1
+![World 1 screenshot][world1]
+
+World 2
+![World 2 screenshot][world2]
+
+World 3
+![World 3 screenshot][world3]
+
+The classification integration with the pick and place server was implemented, but not fully -- therefore it is commented out in `project_template.py`. However, uncommenting the pick and place lines of code below works well enough to pick up and put down an object, keeping in mind that this project submission does not generate the collision map by turning the robot torso.
+
+```
+# Wait for 'pick_place_routine' service to come up
+rospy.wait_for_service('pick_place_routine')
+
+try:
+    pick_place_routine = rospy.ServiceProxy('pick_place_routine', PickPlace)
+
+    # Insert your message variables to be sent as a service request
+    resp = pick_place_routine(test_scene_num, object_name, arm_name, pick_pose, place_pose)
+
+    print ("Response: ",resp.success)
+
+except rospy.ServiceException, e:
+    print "Service call failed: %s"%e
+```
+
+---
 
 # Required Steps for a Passing Submission:
 1. Extract features and train an SVM model on new objects (see `pick_list_*.yaml` in `/pr2_robot/config/` for the list of models you'll be trying to identify). 
