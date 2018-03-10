@@ -119,6 +119,8 @@ pcl_cluster_pub.publish(cluster_msg);
 ```
 
 ### STEP 3: Object Detection
+In this final step, we extract features from each point cloud cluster to try classify the type of object these points correspond to.
+
 The features used were:
 * **HSV** color space, with **25** bins for each channel between 0 and 255.
 * Normals only in the **Z** direction, with **5** bins between -1 and 1.
