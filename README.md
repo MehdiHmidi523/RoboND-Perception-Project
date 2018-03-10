@@ -129,6 +129,8 @@ HSV performed better than RGB for separating objects that were more similar in c
 
 The SVM kernel selected was **linear**. A polynomial kernel with order 2 or higher yielded worse test results. The Radial Basis Function (RBF) kernel gave slightly better test results, but empirically performed worse on the actual project. This is likely because radial basis functions are more prone to overfitting since they can create more complex decision boundaries than a linear SVM.
 
+**NOTE:** The modified `features.py` and `capture_features.py` scripts are in the `/pr2_robot/scripts` folder of this repository. You can run `capture_features.py` using rosrun from the `pr2_robot` package, but `features.py` must be copied over to your existing `sensor_stick` source package.
+
 The relevant classification code in `project_template.py` is below:
 
 ```
